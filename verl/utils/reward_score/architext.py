@@ -50,7 +50,7 @@ def extract_solution(solution_str):
         print(f"Error extracting solution: {str(e)}")
         return None
 
-def compute_score(solution_str, prompt, weights=RewardWeights(), debug=True):
+def compute_score(solution_str, ground_truth, prompt, weights=RewardWeights(), debug=True):
     """Compute reward score for the completion with detailed debugging."""
     try:
         if debug:
