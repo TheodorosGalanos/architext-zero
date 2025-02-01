@@ -57,7 +57,7 @@ def compute_score(solution_str, prompt, weights=RewardWeights(), debug=True):
             print("\nDebug Information:")
             
         # Extract layout from completion
-        layout_str = extract_solution(completion)
+        layout_str = extract_solution(solution_str)
         if debug:
             print(f"1. Extracted layout: {layout_str}")
         if layout_str is None:
