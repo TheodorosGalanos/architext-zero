@@ -102,7 +102,38 @@ bathroom: (50,50)(100,50)(100,100)(50,100)
 User: Create a layout that satisfies this constraint: {prompt}. 
 
 First analyze the requirements in <requirements> </requirements> tags. Then plan the spatial relationships in <planning> </planning> tags. Finally, generate the layout coordinates in <layout> </layout> tags."""
+    elif template_type == 'qwen-instruct':
+        return f"""<|im_start|>system\nYou are an expert architectural layout generator. You understand spatial relationships, room dimensions, and design principles. You generate practical and livable layouts following architectural best practices.
 
+Key Layout Rules:
+1. Use format 'room_label: (x1,y1)(x2,y2)(x3,y3)(x4,y4)...' for each room
+2. Coordinates must be within 256 by 256 grid
+3. Valid room labels: bedroom, bathroom, living_room, kitchen, dining_room, corridor
+4. Rooms must share walls (perfect coordinate overlap)
+5. Each room must have at least 4 coordinates
+6. Rooms can be rectangular or have more complex shapes (L, T, etc.)
+
+Example valid layout:
+bedroom: (100,100)(200,100)(200,200)(100,200)
+living_room: (0,0)(200,0)(200,100)(100,100)(100,200)(0,200)
+bathroom: (50,50)(100,50)(100,100)(50,100)
+<|im_end|>
+
+<|im_start|>user
+Create a layout that satisfies this constraint: {prompt}
+
+Generate your response in three parts:
+1. Analyze requirements in <requirements> </requirements> tags
+2. Plan spatial relationships in <planning> </planning> tags
+3. Generate layout coordinates in <layout> </layout> tags
+
+Only put the layout details (rooms and coordinates) inside the <layout> tags.
+<|im_end|>
+
+<|im_start|>assistant
+Let me design this layout step by step.
+
+<requirements>"""
     else:
         # Default template if none of the above match
         return f"""A conversation between User and Assistant about architectural layout design. The Assistant is an expert architect who understands spatial relationships, room dimensions, and design principles.
