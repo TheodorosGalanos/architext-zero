@@ -137,7 +137,8 @@ def prepare_datasets(args):
         def process_fn(example, idx):
             question = make_prefix(example, template_type=args.template_type)
             solution = {
-                "layout": example['layout']
+                "layout": example['layout'],
+                "prompt": example['prompt']
             }
             data = {
                 "data_source": "architectural_layouts",
