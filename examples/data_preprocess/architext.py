@@ -13,13 +13,10 @@ import argparse
 
 def read_layout_data(data_dir: str) -> List[Dict]:
     """
-    Read layout data from all txt files in a directory and convert to list of dictionaries
-    
-    Args:
-        data_dir (str): Directory containing txt files with layout data
-    
-    Returns:
-        List[Dict]: List of dictionaries containing prompt and layout pairs
+    Read layout data from txt file and convert to list of dictionaries.
+    Handles both orders:
+    - [User prompt] ... [Layout] ...
+    - [Layout] ... [User prompt] ...
     """
     data = []
     
@@ -34,18 +31,30 @@ def read_layout_data(data_dir: str) -> List[Dict]:
     for txt_file in txt_files:
         file_path = os.path.join(data_dir, txt_file)
         print(f"Processing {txt_file}...")
-        
         with open(file_path, 'r') as f:
             for line in f:
-                # Parse each line into prompt and layout
-                if '[User prompt]' in line and '[Layout]' in line:
-                    prompt_part = line.split('[Layout]')[0].replace('[User prompt]', '').strip()
-                    layout_part = line.split('[Layout]')[1].strip()
+                line = line.strip()
+                if not line:
+                    continue
                     
-                    data.append({
-                        'prompt': prompt_part,
-                        'layout': layout_part
-                    })
+                # Extract prompt and layout regardless of order
+                prompt_part = None
+                layout_part = None
+                
+                # Find all parts using regex to handle both orders
+                prompt_match = re.search(r'\[User prompt\](.*?)(?=\[Layout\]|\Z)', line)
+                layout_match = re.search(r'\[Layout\](.*?)(?=\[User prompt\]|\Z)', line)
+                
+                if prompt_match and layout_match:
+                    prompt_part = prompt_match.group(1).strip()
+                    layout_part = layout_match.group(1).strip()
+                    
+                    # Add to data if we have both parts
+                    if prompt_part and layout_part:
+                        data.append({
+                            'prompt': prompt_part,
+                            'layout': layout_part
+                        })
     
     print(f"Total examples loaded: {len(data)}")
     return data
