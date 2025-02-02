@@ -74,36 +74,32 @@ def make_prefix(example, template_type='base'):
     if template_type == 'base':
         return f"""A conversation between User and Assistant about architectural layout design. The Assistant is an expert architect who understands spatial relationships, room dimensions, and design principles. When given a constraint, the Assistant first analyzes the requirements, then plans the layout considering architectural best practices, and finally generates the geometric solution.
 
-The layout should be specified using room labels followed by their coordinates. Each room can have 4 or more coordinates to define its shape (rectangular or more complex shapes like L or T). Coordinates are in a 256 by 256 grid system. For example:
-- A rectangular bedroom: 'bedroom: (0,0)(100,0)(100,100)(0,100)'
-- An L-shaped living room: 'living_room: (0,0)(200,0)(200,100)(100,100)(100,200)(0,200)'
+Here are the rules layouts must follow:
+
+1. Format: 'room_label: (x1,y1)(x2,y2)(x3,y3)(x4,y4)...' for each room
+2. Grid: All coordinates within 256 by 256
+3. Valid rooms: bedroom, bathroom, living_room, kitchen, dining_room, corridor
+4. Walls: Rooms must share walls through exact coordinate matches
+5. Shape: Rooms need 4+ coordinates, can be rectangular or L/T shaped
+6. No overlaps: Rooms can share walls but cannot overlap
+
+Every house layout must include:
+- At least one bedroom
+- At least one bathroom
+- A living room
+- A kitchen
+- Proper connections (corridors or direct adjacencies)
+
+Here's an example of a valid layout (rooms separated by commas):
+bedroom: (100,100)(200,100)(200,200)(100,200), living_room: (0,0)(200,0)(200,100)(100,100)(100,200)(0,200), bathroom: (50,50)(100,50)(100,100)(50,100), kitchen: (200,0)(250,0)(250,100)(200,100)
 
 Valid room labels are: bedroom, bathroom, living_room, kitchen, dining_room, corridor.
 Rooms must connect through shared walls and form a coherent living space.
 
 User: Create a layout that satisfies this constraint: {prompt}. First analyze the requirements in <requirements> </requirements> tags. Then plan the spatial relationships in <planning> </planning> tags. Finally, generate the layout coordinates in <layout> </layout> tags."""
-
-    elif template_type == 'base-explicit':
-        return f"""A conversation between User and Assistant about architectural layout design. The Assistant is an expert architect who understands spatial relationships, room dimensions, and design principles. The layout should be practical and livable, following basic architectural principles.
-
-Key Layout Rules:
-1. Use format 'room_label: (x1,y1)(x2,y2)(x3,y3)(x4,y4)...' for each room
-2. Coordinates must be within 256 by 256 grid
-3. Valid room labels: bedroom, bathroom, living_room, kitchen, dining_room, corridor
-4. Rooms must share walls (perfect coordinate overlap)
-5. Each room must have at least 4 coordinates
-6. Rooms can be rectangular or have more complex shapes (L, T, etc.)
-
-Example valid rooms:
-bedroom: (100,100)(200,100)(200,200)(100,200)
-living_room: (0,0)(200,0)(200,100)(100,100)(100,200)(0,200)
-bathroom: (50,50)(100,50)(100,100)(50,100)
-
-User: Create a layout that satisfies this constraint: {prompt}. 
-
-First analyze the requirements in <requirements> </requirements> tags. Then plan the spatial relationships in <planning> </planning> tags. Finally, generate the layout coordinates in <layout> </layout> tags."""
-    elif template_type == 'qwen-instruct':
-        return f"""<|im_start|>system\nYou are an expert architectural layout generator. You understand spatial relationships, room dimensions, and design principles. You generate practical and livable layouts following architectural best practices.
+    elif template_type == 'instruct':
+        return f"""<|im_start|>system
+You are an expert architectural layout generator. You understand spatial relationships, room dimensions, and design principles. You generate practical and livable layouts following architectural best practices.
 
 Key Layout Rules:
 1. Use format 'room_label: (x1,y1)(x2,y2)(x3,y3)(x4,y4)...' for each room
@@ -113,37 +109,32 @@ Key Layout Rules:
 5. Each room must have at least 4 coordinates
 6. Rooms can be rectangular or have more complex shapes (L, T, etc.)
 
-Example valid layout:
-bedroom: (100,100)(200,100)(200,200)(100,200)
-living_room: (0,0)(200,0)(200,100)(100,100)(100,200)(0,200)
-bathroom: (50,50)(100,50)(100,100)(50,100)
+Important: Always generate a complete house layout that includes:
+- At least one bedroom
+- At least one bathroom
+- A living room
+- A kitchen
+- Appropriate connections via corridors or direct adjacencies
+
+Example valid layout (rooms separated by commas):
+bedroom: (100,100)(200,100)(200,200)(100,200), living_room: (0,0)(200,0)(200,100)(100,100)(100,200)(0,200), bathroom: (50,50)(100,50)(100,100)(50,100), kitchen: (200,0)(250,0)(250,100)(200,100)
 <|im_end|>
 
 <|im_start|>user
-Create a layout that satisfies this constraint: {prompt}
+Create a complete house layout that satisfies this constraint: {prompt}
+
+Remember to include all essential rooms for a livable house, while ensuring the specific constraint is met: {prompt}
 
 Generate your response in three parts:
 1. Analyze requirements in <requirements> </requirements> tags
-2. Plan spatial relationships in <planning> </planning> tags
-3. Generate layout coordinates in <layout> </layout> tags
-
-Only put the layout details (rooms and coordinates) inside the <layout> tags.
+2. Plan spatial relationships in <planning> </planning> tags (include ALL rooms, not just the constrained one)
+3. Generate layout coordinates in <layout> </layout> tags for a complete house
 <|im_end|>
 
 <|im_start|>assistant
-Let me design this layout step by step.
+Let me design a complete house layout step by step.
 
 <requirements>"""
-    else:
-        # Default template if none of the above match
-        return f"""A conversation between User and Assistant about architectural layout design. The Assistant is an expert architect who understands spatial relationships, room dimensions, and design principles.
-
-Layout format: 'room_label: (x1,y1)(x2,y2)(x3,y3)(x4,y4)...' within 256 by 256 grid.
-Valid labels: bedroom, bathroom, living_room, kitchen, dining_room, corridor.
-
-User: Create a layout that satisfies this constraint: {prompt}. 
-
-First analyze the requirements in <requirements> </requirements> tags. Then plan the spatial relationships in <planning> </planning> tags. Finally, generate the layout coordinates in <layout> </layout> tags."""
 
 def inspect_datasets(local_dir: str):
     """
