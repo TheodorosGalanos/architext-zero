@@ -97,7 +97,7 @@ def compute_score(solution_str, ground_truth, prompt, weights=RewardWeights(), d
             print(f"6. Efficiency: {efficiency_reward} - {eff_details}")
             
         # Calculate final reward
-        final_reward, details = calculator.calculate_total_reward(layout, prompt)
+        final_reward, details = calculator.calculate_total_reward(layout, ground_truth['prompt'])
         if debug:
             print(f"7. Final reward: {final_reward}")
             print(f"8. Details: {details}")
