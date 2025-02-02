@@ -31,6 +31,7 @@ python3 -m verl.trainer.main_ppo \
     algorithm.kl_ctrl.kl_coef=0.001 \
     trainer.critic_warmup=0 \
     trainer.logger=['console','wandb'] \
+    trainer.default_local_dir=data/${trainer.project_name}/${trainer.experiment_name} \
     trainer.project_name='verl_grpo_architext' \
     trainer.experiment_name='qwen2_7b_function_rm_kl1e-3' \
     +trainer.val_before_train=False \
