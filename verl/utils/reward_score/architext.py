@@ -1,5 +1,5 @@
 import re
-from reward_functions import LayoutRewardCalculator, RewardWeights, parse_layout_string
+from .reward_functions import LayoutRewardCalculator, RewardWeights, parse_layout_string
 
 def extract_solution(solution_str):
     """Extract the layout from the solution string."""
@@ -50,7 +50,7 @@ def extract_solution(solution_str):
         print(f"Error extracting solution: {str(e)}")
         return None
 
-def compute_score(solution_str, ground_truth, prompt, weights=RewardWeights(), debug=True):
+def compute_score(solution_str, ground_truth, weights=RewardWeights(), debug=True):
     """Compute reward score for the completion with detailed debugging."""
     try:
         if debug:
