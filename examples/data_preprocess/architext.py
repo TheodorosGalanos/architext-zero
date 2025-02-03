@@ -200,6 +200,108 @@ Generate your response in three parts:
 Let me design a complete house layout step by step.
 
 <requirements>"""
+    elif template_type == "instruct_few_shot":
+        return f"""<|im_start|>system
+You are an expert architectural layout generator. You understand spatial relationships, room dimensions, and design principles. You generate practical and livable layouts following architectural best practices.
+
+Key Layout Rules:
+1. Use format 'room_label: (x1,y1)(x2,y2)(x3,y3)(x4,y4)...' for each room
+2. Coordinates must be within 256 by 256 grid
+3. Valid room labels: bedroom, bathroom, living_room, kitchen, dining_room, corridor
+4. Rooms must share walls (perfect coordinate overlap)
+5. Each room must have at least 4 coordinates
+6. Rooms can be rectangular or have more complex shapes (L, T, etc.)
+
+Important: Always generate a complete house layout that includes:
+- At least one bedroom
+- At least one bathroom
+- A living room
+- A kitchen
+- Appropriate connections via corridors or direct adjacencies
+
+Example valid layout (rooms separated by commas):
+bedroom: (100,100)(200,100)(200,200)(100,200), living_room: (0,0)(200,0)(200,100)(100,100)(100,200)(0,200), bathroom: (50,50)(100,50)(100,100)(50,100), kitchen: (200,0)(250,0)(250,100)(200,100)
+
+Here are some example constraints and solutions:
+
+User: Create a layout that satisfies this constraint: the kitchen is adjacent to the bedroom
+Assistant: <requirements>
+- Kitchen must share at least one full wall with a bedroom
+- Include 2 bedrooms for flexibility while meeting minimum requirements
+- Ensure bathroom accessibility from common areas
+- Maintain corridor connections between separated spaces
+</requirements>
+
+<planning>
+This is a Direct Adjacency Strategy:
+1. Anchor kitchen-bedroom adjacency through shared (128,113)-(157,113) wall
+2. Create L-shaped living room to wrap around central corridor
+3. Position secondary bedroom as buffer between living area and bathroom
+4. Use corridor to connect disjointed bedroom cluster with main living area
+</planning>
+
+<layout>
+bedroom: (187,84)(113,84)(113,25)(187,25), bedroom: (113,99)(69,99)(69,55)(113,55), living_room: (128,231)(69,231)(69,128)(128,128), kitchen: (157,187)(128,187)(128,113)(157,113), bathroom: (157,113)(128,113)(128,84)(157,84), corridor: (128,128)(69,128)(69,99)(113,99)(113,84)(128,84)
+</layout>
+
+User: Create a layout that satisfies this constraint: a house with seven rooms and a corridor
+Assistant: <requirements>
+- Maximize room count while maintaining functional relationships
+- Use corridor as primary circulation spine
+- Cluster service spaces (kitchen/bathrooms) for plumbing efficiency
+- Separate private (bedrooms) and public zones
+</requirements>
+
+<planning>
+This is a Central Circulation Strategy:
+1. Create branching corridor connecting all zones
+2. Group 3 bedrooms in southwest quadrant with shared bathroom
+3. Position kitchen near corridor end for service access
+4. Design compound-shaped living room to accommodate irregular site
+5. Add secondary bathroom near public spaces
+</planning>
+
+<layout>
+bedroom: (223,157)(179,157)(179,128)(223,128), living_room: (165,201)(47,201)(47,143)(150,143)(150,157)(165,157), bathroom: (165,128)(121,128)(121,99)(165,99), bedroom: (121,128)(77,128)(77,55)(121,55), bathroom: (62,143)(33,143)(33,113)(62,113), bedroom: (77,113)(33,113)(33,55)(77,55), kitchen: (209,128)(165,128)(165,69)(209,69), corridor: (179,157)(150,157)(150,143)(62,143)(62,113)(77,113)(77,128)(179,128)
+</layout>
+
+User: Create a layout that satisfies this constraint: a bathroom is located in the north east side of the house
+Assistant: <requirements>
+- Primary bathroom must occupy northeast quadrant (x,y > 128)
+- Secondary bathroom permitted in central areas
+- Maintain southern kitchen access from dining areas
+- Ensure bedroom privacy through spatial separation
+</requirements>
+
+<planning>
+This is a Zonal Placement Strategy:
+1. Anchor northeast bathroom at (157,33)-(187,165) coordinates
+2. Cluster public spaces (living room/kitchen) in northwest
+3. Create bedroom wing in southeast with private bathroom
+4. Use diagonal corridor system for quadrant connections
+5. Design kitchen with dual access to corridor and exterior
+</planning>
+
+<layout>
+bathroom: (157,77)(128,77)(128,33)(157,33), bedroom: (201,165)(157,165)(157,91)(201,91), bathroom: (187,194)(157,194)(157,165)(187,165), living_room: (128,223)(40,223)(40,150)(128,150), bedroom: (128,150)(99,150)(99,91)(128,91), kitchen: (216,223)(157,223)(157,194)(216,194), corridor: (157,223)(128,223)(128,77)(157,77)
+</layout>
+<|im_end|>
+
+<|im_start|>user
+Create a complete house layout that satisfies this constraint: {prompt}
+
+Remember to include all essential rooms for a livable house, while ensuring the specific constraint is met: {prompt}
+
+Generate your response in three parts:
+1. Analyze requirements in <requirements> </requirements> tags
+2. Plan spatial relationships in <planning> </planning> tags (include ALL rooms, not just the constrained one)
+3. Generate layout coordinates in <layout> </layout> tags for a complete house
+<|im_end|>
+
+<|im_start|>assistant
+Let me design a complete house layout step by step.
+
+<requirements>"""
 
 def inspect_datasets(local_dir: str):
     """
