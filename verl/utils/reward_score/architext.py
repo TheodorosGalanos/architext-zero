@@ -45,14 +45,14 @@ def extract_solution(solution_str):
         print(f"Error extracting solution: {str(e)}")
         return None
 
-def compute_score(completion, prompt, weights=RewardWeights(), debug=True):
+def compute_score(solution_str, ground_truth, weights=RewardWeights(), debug=True):
     """Compute reward score for the completion with detailed debugging."""
     try:
         if debug:
             print("\nDebug Information:")
             
         # Extract layout from completion
-        layout_str = extract_solution(completion)
+        layout_str = extract_solution(solution_str)
         if debug:
             print(f"1. Extracted layout: {layout_str}")
         if layout_str is None:
@@ -67,7 +67,7 @@ def compute_score(completion, prompt, weights=RewardWeights(), debug=True):
             
         # Calculate reward
         calculator = LayoutRewardCalculator(weights)
-        final_reward = calculator.calculate_total_reward(layout, prompt)
+        final_reward = calculator.calculate_total_reward(layout, ground_truth)
         
         return final_reward
         
