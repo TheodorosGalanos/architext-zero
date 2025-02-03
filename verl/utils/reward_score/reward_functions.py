@@ -65,25 +65,14 @@ class LayoutRewardCalculator:
     def __init__(self, weights: RewardWeights = None): # type: ignore
         self.weights = weights or RewardWeights()
     
-    def calculate_format_validity_reward(self, layout: Dict) -> Tuple[float, str]:
+    def calculate_format_validity_reward(self, layout: Dict) -> float:
         """
         Check format validity and geometric correctness
         Returns: (reward in [0,1], message)
         """
-        is_valid, message = validate_layout_format(layout)
-        if not is_valid:
-            return 0.0, message
+        validity_reward = validate_layout_format(layout)
             
-        # Check if all polygons are valid
-        try:
-            for room_type, coords in layout.items():
-                poly = Polygon(coords)
-                if not poly.is_valid:
-                    return 0.5, f"Invalid polygon for {room_type}"
-        except Exception:
-            return 0.0, "Error creating polygons"
-            
-        return 1.0, "Valid format"
+        return validity_reward
     
     def calculate_room_quality_reward(self, layout: Dict) -> Tuple[float, Dict]:
         """
@@ -226,7 +215,7 @@ class LayoutRewardCalculator:
         location_constraints = extract_rooms_from_prompt(prompt)
         
         # Score room counts/combinations (0.5 of total)
-        is_valid, count_message = validate_room_constraints(layout, room_constraints) # type: ignore
+        is_valid, _ = validate_room_constraints(layout, room_constraints) # type: ignore
         count_score = 0.5 if is_valid else 0.0
         details['room_counts'] = count_score
         
@@ -250,16 +239,11 @@ class LayoutRewardCalculator:
         rewards = {}
         
         # Calculate individual rewards
-        format_reward, format_msg = self.calculate_format_validity_reward(layout)
+        format_reward = self.calculate_format_validity_reward(layout)
         rewards['format'] = {
             'score': format_reward,
             'weight': self.weights.format_validity,
-            'details': format_msg
         }
-        
-        # Only continue if format is valid
-        if format_reward == 0:
-            return 0.0, rewards
             
         quality_reward, quality_details = self.calculate_room_quality_reward(layout)
         rewards['quality'] = {
@@ -805,65 +789,84 @@ def calculate_room_constraint_reward(layout, prompt):
 
 ## FORMAT VALIDATOR RULES ##
 
-def validate_layout_format(layout):
-    """
-    Comprehensive format validator checking:
-    1. Valid room types
-    2. Valid polygon geometry
-    3. Boundary constraints
-    4. No overlaps between rooms
-    """
-    # Valid room types
+def validate_room_types(layout):
+    """Check if all room types are valid"""
     VALID_BASE_TYPES = {
         'bedroom', 'bathroom', 'living_room', 'kitchen', 
         'dining_room', 'corridor', 'hallway'
     }
     
-    try:
-        # Check for empty layout
-        if not layout:
-            return False, "Empty layout"
-    
-        # Check each room
-        for room_type, coordinates in layout.items():
-            # Check room type
-            base_type = get_base_room_type(room_type)
-            if base_type not in VALID_BASE_TYPES:
-                return False, f"Invalid room type: {room_type} [base_type: {base_type}]"
-            
-            # Check minimum coordinates
-            if len(coordinates) < 3:
-                return False, f"Room {room_type} has fewer than 3 coordinates"
-            
-            # Check boundary constraints
-            for x, y in coordinates:
-                if not (0 <= x <= 256 and 0 <= y <= 256):
-                    return False, f"Room {room_type} has coordinates outside 256x256 boundary"
-            
-            # Check if coordinates form a valid polygon
+    for room_type in layout:
+        base_type = get_base_room_type(room_type)
+        if base_type not in VALID_BASE_TYPES:
+            return 0.0, f"Invalid room type: {room_type} [base_type: {base_type}]"
+    return 0.2, "Valid room types"
+
+def validate_minimum_coordinates(layout):
+    """Check if rooms have minimum required coordinates"""
+    for room_type, coordinates in layout.items():
+        if len(coordinates) < 3:
+            return 0.0, f"Room {room_type} has fewer than 3 coordinates"
+    return 0.2, "Valid coordinate counts"
+
+def validate_boundary_constraints(layout):
+    """Check if coordinates are within bounds"""
+    for room_type, coordinates in layout.items():
+        for x, y in coordinates:
+            if not (0 <= x <= 256 and 0 <= y <= 256):
+                return 0.0, f"Room {room_type} has coordinates outside 256x256 boundary"
+    return 0.2, "Valid boundaries"
+
+def validate_polygon_geometry(layout):
+    """Check if coordinates form valid polygons"""
+    for room_type, coordinates in layout.items():
+        try:
+            poly = Polygon(coordinates)
+            if not poly.is_valid:
+                return 0.0, f"Room {room_type} coordinates don't form a valid polygon"
+        except Exception as e:
+            return 0.0, f"Error creating polygon for {room_type}: {str(e)}"
+    return 0.2, "Valid polygons"
+
+def validate_room_overlaps(layout):
+    """Check for overlaps between rooms"""
+    rooms = list(layout.items())
+    for i in range(len(rooms)):
+        for j in range(i + 1, len(rooms)):
+            room1_type, room1_coords = rooms[i]
+            room2_type, room2_coords = rooms[j]
             try:
-                poly = Polygon(coordinates)
-                if not poly.is_valid:
-                    return False, f"Room {room_type} coordinates don't form a valid polygon"
+                if check_room_overlap(room1_coords, room2_coords):
+                    return 0.0, f"Overlap detected between {room1_type} and {room2_type}"
             except Exception as e:
-                return False, f"Error creating polygon for {room_type}: {str(e)}"
-        
-        # Check for overlaps between rooms
-        rooms = list(layout.items())
-        for i in range(len(rooms)):
-            for j in range(i + 1, len(rooms)):
-                room1_type, room1_coords = rooms[i]
-                room2_type, room2_coords = rooms[j]
-                try:
-                    if check_room_overlap(room1_coords, room2_coords):
-                        return False, f"Overlap detected between {room1_type} and {room2_type}"
-                except Exception as e:
-                    return False, f"Error checking overlap between {room1_type} and {room2_type}: {str(e)}"
-        
-        return True, "Layout format is valid"
+                return 0.0, f"Error checking overlap between {room1_type} and {room2_type}: {str(e)}"
+    return 0.3, "No overlaps detected"
+
+
+
+def validate_layout_format(layout):
+    """
+    Evaluates layout quality using weighted combination of different metrics.
+    Returns float between 0.0 (invalid) and 1.0 (perfect)
+    """
+    # Check room types (0.0 to 1.0)
+    room_types_reward, msg = validate_room_types(layout)
+    # Check minimum coordinates (0.0 to 1.0)
+    min_coords_reward, msg = validate_minimum_coordinates(layout)
+
+    # Check boundary constraints (0.0 to 1.0)
+    boundary_reward, msg = validate_boundary_constraints(layout)
+
+    # Check polygon geometry (0.0 to 1.0)
+    geometry_reward, msg = validate_polygon_geometry(layout)
+
+    # Check room overlaps (0.0 to 1.0)
+    overlap_reward, msg = validate_room_overlaps(layout)
+
+    total_reward = room_types_reward + boundary_reward + geometry_reward + overlap_reward
     
-    except Exception as e:
-        return False, f"Validation error: {str(e)}"
+    return total_reward
+    
 
 ## 2. Boundary Checker ##
 def check_room_overlap(coords1, coords2):
